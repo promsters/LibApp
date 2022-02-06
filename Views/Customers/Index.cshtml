@@ -5,49 +5,72 @@
 
 <h2>Customers</h2>
 
-<p>
-    <a class="btn btn-primary" asp-action="New">New Customer</a>
-</p>
+@if (this.User.IsInRole("Owner"))
+{
+    <p>
+        <a class="btn btn-primary" asp-action="New">New Customer</a>
+    </p>
+}
 
 <table id="customers" class="table table-hover">
     <thead>
         <tr>
             <th>Customer</th>
             <th>Discount Rate</th>
-            <th>Delete</th>
-        </tr>
+            @if (this.User.IsInRole("Owner"))
+            {
+                <th>Delete</th>
+            }
+            </tr>
     </thead>
     <tbody>
     </tbody>
 </table>
 
 
-@section Scripts 
+@section Scripts
 {
+    @if (this.User.IsInRole("Owner"))
+    {
+        <script>
+            var canDelete = true;
+        </script>
+    }
+    else
+    {
+        <script>
+            var canDelete = false;
+        </script>
+    }
     <script>
         $(document).ready(function () {
+            var columnsDef = [
+                {
+                    data: "name",
+                    render: function (data, type, customer) {
+                        return "<a href='customers/details/" + customer.id + "'>" + customer.name + "</a>";
+                    }
+                },
+                {
+                    data: "membershipType.discountRate"
+                }
+            ];
+
+            if (canDelete) {
+                columnsDef.push({
+                    data: "id",
+                    render: function (data) {
+                        return "<button class='btn btn-secondary js-delete' data-customer-id=" + data + ">Delete</button>";
+                    }
+                });
+            }
+
             $("#customers").DataTable({
                 ajax: {
                     url: "api/customers/",
                     dataSrc: ""
                 },
-                columns: [
-                    {
-                        data: "name",
-                        render: function (data, type, customer) {
-                            return "<a href='customers/edit/" + customer.id + "'>" + customer.name + "</a>";
-                        }
-                    },
-                    {
-                        data: "membershipType.discountRate"
-                    },
-                    {
-                        data: "id",
-                        render: function (data) {
-                            return "<button class='btn btn-secondary js-delete' data-customer-id=" + data + ">Delete</button>";
-                        }
-                    }
-                ]
+                columns: columnsDef
             });
         });
     </script>
@@ -85,5 +108,5 @@
                 });
             });
         })
-</script>
+    </script>
 }
