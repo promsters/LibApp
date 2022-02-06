@@ -5,55 +5,69 @@ using System.Linq;
 using System.Threading.Tasks;
 using LibApp.Models;
 using LibApp.ViewModels;
+using LibApp.Data;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authorization;
+using LibApp.Interfaces;
 
 namespace LibApp.Controllers
 {
+    [Authorize]
     public class BooksController : Controller
     {
-        public IActionResult Random()
+        private readonly IBookRepository repository;
+        private readonly IGenreRepository genreRepository;
+
+        public BooksController(IBookRepository repository, IGenreRepository genreRepository)
         {
-            var firstBook = new Book() { Name = "English dictionary" };
-
-            var customers = new List<Customer>
-            {
-                new Customer {Name = "Customer 1"},
-                new Customer {Name = "Customer 2"}
-            };
-
-            var viewModel = new RandomBookViewModel
-            {
-                Book = firstBook,
-                Customers = customers
-            };
-            
-            return View(viewModel);
-        }
-
-        public IActionResult Edit(int bookId)
-        {
-            return Content("id=" + bookId);
+            this.repository = repository;
+            this.genreRepository = genreRepository;
         }
 
         public IActionResult Index()
         {
-            var books = GetBooks();
-            
-            return View(books);
-        }
-        
-        [Route("books/released/{year:regex(^\\d{{4}}$)}/{month:range(1, 12)}")]
-        public IActionResult ByReleaseDate(int year, int month)
-        {
-            return Content(year + "/" + month);
+            return View();
         }
 
-        private IEnumerable<Book> GetBooks()
+        public IActionResult Details(int id)
         {
-            return new List<Book>
+            var book = repository.GetBookById(id);
+
+            if (book == null)
             {
-                new Book {Id = 1, Name = "Hamlet"},
-                new Book {Id = 2, Name = "Ulysses"}
+                return Content("Book not found");
+            }
+
+            return View(book);
+        }
+
+        [Authorize(Roles = "Owner,StoreManager")]
+        public IActionResult Edit(int id)
+        {
+            var book = repository.GetBookById(id);
+            if (book == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = new BookFormViewModel
+            {
+                Book = book,
+                Genres = genreRepository.GetGenres().ToList()
             };
+
+            return View("BookForm", viewModel);
+        }
+
+        [Authorize(Roles = "Owner,StoreManager")]
+        public IActionResult New()
+        {
+            var viewModel = new BookFormViewModel
+            {
+                Genres = genreRepository.GetGenres().ToList()
+            };
+
+            return View("BookForm", viewModel);
         }
     }
 }
